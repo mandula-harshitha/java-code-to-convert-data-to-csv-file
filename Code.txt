@@ -1,0 +1,76 @@
+Code
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import com.opencsv.CSVWriter;
+
+public class ProductDetailsScraper {
+    public static void main(String[] args) throws IOException {
+        // Replace the URL below with the actual URL of the product page you want to scrape
+        String url = "https://www.staples.com/Computer-office-desks/cat_CL210795/663ea?icid=BTS:2020:STUDYSPACE:DESKS";
+
+        // Fetch the HTML content of the page using Jsoup
+        Document doc = Jsoup.connect(url).get();
+
+        // Extract the product details from the page
+        Elements productElements = doc.select("div.product");
+        List<Product> products = new ArrayList<>();
+        for (Element productElement : productElements) {
+            String name = productElement.select("h2.product-name").text();
+            String price = productElement.select("span.price").text();
+            double rating = Double.parseDouble(productElement.select("span.rating").text());
+            int numReviews = Integer.parseInt(productElement.select("span.num-reviews").text());
+            products.add(new Product(name, price, rating, numReviews));
+        }
+
+        // Sort the products based on their rating in descending order
+        products.sort(Comparator.comparing(Product::getRating).reversed());
+
+        // Write the top 10 products to a CSV file using OpenCSV
+        FileWriter writer = new FileWriter("top_products.csv");
+        CSVWriter csvWriter = new CSVWriter(writer);
+        csvWriter.writeNext(new String[] {"Name", "Price", "Rating", "Num Reviews"});
+        for (int i = 0; i < Math.min(10, products.size()); i++) {
+            Product product = products.get(i);
+            csvWriter.writeNext(new String[] {product.getName(), product.getPrice(),
+                    Double.toString(product.getRating()), Integer.toString(product.getNumReviews())});
+        }
+        csvWriter.close();
+    }
+}
+class Product {
+    private String name;
+    private String price;
+    private double rating;
+    private int numReviews;
+
+    public Product(String name, String price, double rating, int numReviews) {
+        this.name = name;
+        this.price = price;
+        this.rating = rating;
+        this.numReviews = numReviews;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getPrice() {
+        return price;
+    }
+
+    public double getRating() {
+        return rating;
+    }
+
+    public int getNumReviews() {
+        return numReviews;
+    }
+}
